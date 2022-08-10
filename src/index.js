@@ -1,8 +1,13 @@
 const { response } = require('express');
 const express = require('express');
+const { v4: uuidv4} = require("uuid");
 
 const app = express()
 
+app.use(express.json());
+
+
+const customers = [];
 /*request é tudo aquilo que a gente recebe da requisição, 
 response é aquilo que vamos retornar
 */
@@ -14,23 +19,32 @@ response é aquilo que vamos retornar
     PATCH - Alterar uma informação específica
     DELETE - Deletar uma informação no servidor
 */
-app.get("/courses", (request, response) => { 
-    return response.json(["Curso 1, Curso 2, Curso 3"])
+
+/*
+    Tipos de parâmetros
+
+    Route Params => Servem para identificar um recurso, editar, deletar ou buscar
+    Query Params => Servem para paginação, filtro.
+    Body Params => Os objetos que passaremos para inserção e/ou alteração
+*/
+
+/*
+    cpf - string
+    name - string
+    id - uuid universally unique identifier 
+    statement []
+*/
+
+app.post("/account", (request, response) =>{
+    const {cpf, name} = request.body;
+    const id = uuidv4();
+    customers.push({
+        cpf,
+        name,
+        id,
+        statement: []
+    });
+    return response.status(201).send();
 });
 
-app.post("/courses", (request, response) =>{
-    return response.json(["Curso 1", "Curso 2", "Curso 3", "Curso 4"]);
-});
-
-app.put("/courses/:id", (request, response) =>{
-    return response.json(["Curso 6", "Curso 2", "Curso 3", "Curso 4"]);
-});
-
-app.patch("/courses/:id", (request, response) =>{
-    return response.json(["Curso 6",  "Curso 7", "Curso 3", "Curso 4"]);
-});
-
-app.delete("/courses/:id", (request, response) =>{
-    return response.json(["Curso 6", "Curso 2", "Curso 4"]);
-});
 app.listen(3030);
