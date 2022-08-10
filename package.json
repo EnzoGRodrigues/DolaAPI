@@ -1,0 +1,7 @@
+{
+  "name": "nodejs",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Enzo Rodrigues <enzorodrigues272@gmail.com>",
+  "license": "MIT"
+}
