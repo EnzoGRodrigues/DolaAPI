@@ -1,4 +1,4 @@
-const { response } = require('express');
+const { response, request } = require('express');
 const express = require('express');
 const { v4: uuidv4} = require("uuid");
 
@@ -34,8 +34,36 @@ response é aquilo que vamos retornar
     id - uuid universally unique identifier 
     statement []
 */
+/*
+middleware são requisições que ficam entre o request e o response
+usamos para fazer a validação de um token, ou para verificar se
+aquele usuário é mesmo um admin ou não.
+*/
 
-app.post("/account", (request, response) =>{
+function verifyIfExistsAccountCPF(request, response, next){ //função de middleware
+    const {cpf} = request.headers; //usando route params, pq atraves do cpf a pesquisa será feita
+    const customer = customers.find((customer)=> customer.cpf === cpf); //usado para encontrar o cpf existente
+    if (!customer){
+        return response.status(400).json({error: "Customer not found"});
+    }
+
+    request.customer = customer;
+
+    return next();
+}
+
+function getBalance(statement){
+    const balance = statement.reduce((acc, operation)=>{
+        if (operation.type ==='credit'){
+            return acc + operation.amount;
+        }else{
+            return acc - operation.amount;
+        }
+    }, 0);
+
+    return balance;
+}
+app.post("/account", (request, response) =>{//usando o post para inserir informações da conta 
     const {cpf, name} = request.body;
 
     const customerAlreadyExists = customers.some((customer) => customer.cpf === cpf);
@@ -50,6 +78,49 @@ app.post("/account", (request, response) =>{
         id: uuidv4(),
         statement: []
     });
+    return response.status(201).send();
+});
+ 
+//app.use(verifyIfExistsAccountCPF); posso  usar essa  maneira se eu  qusier que todas as rotas abaixo tenham um middleware
+
+app.get("/statement", verifyIfExistsAccountCPF, (request,  response) =>{ //usando o get   para procurar o extrato bancário 
+    const {customer}=request;
+     return response.json(customer.statement); //retorno desse cpf será o statement, que é o extrato
+});
+
+app.post("/deposit", verifyIfExistsAccountCPF, (request, response)=>{
+    const {description, amount} = request.body;
+    const {customer}= request;
+
+    const statementOperation = {
+        description,
+        amount,
+        created_at:new Date(),
+        type: "credit", 
+    };
+
+    customer.statement.push(statementOperation);
+
+    return response.status(201).send();
+});
+
+app.post("/withdraw", verifyIfExistsAccountCPF, (request, response)=>{
+    const {amount} = request.body;
+    const {customer} = request;
+    const balance = getBalance(customer.statement);
+
+    if (balance < amount){
+        return response.status(400).json({error: "Insufficient funds!"})
+    }
+
+    const statementOperation={
+        amount,
+        created_at:new Date(),
+        type: "debit", 
+    };
+
+    customer.statement.push(statementOperation);
+
     return response.status(201).send();
 });
 
